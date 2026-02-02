@@ -170,6 +170,12 @@ After enabling **.NET Framework 3.5**:
 * You must fix only **build-blocking errors** to run analysis; warnings can be left as-is.
 * Always use the **correct scanner** for your project type.
 * After analysis, results can be viewed on `http://localhost:9000` under your project key (`webGoat`).
+
+## **toolsHelp**
+### SonarQube gives commands but it works fine for .Net Core but create issue if we run same commands .net Framework so first make sure you have .NET Framework 3.5 Runtime
+
+<img width="1278" height="694" alt="image" src="https://github.com/user-attachments/assets/7aa791e3-2e03-4f62-8f33-cc5415713cdf" />
+
 ## **Step 1**
 <img width="1756" height="631" alt="image" src="https://github.com/user-attachments/assets/f10f735b-f738-422f-bb61-34a5bd5b010d" />
 ## **Step 2**
