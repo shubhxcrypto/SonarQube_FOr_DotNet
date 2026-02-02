@@ -69,6 +69,98 @@ SonarScanner.MSBuild.exe end /d:sonar.token="YOUR_TOKEN"
 | **MSBuild error: .NET Framework v3.5 not found**     | Project targets **.NET Framework 3.5** but it wasn’t installed          | Installed **.NET Framework 3.5 Developer Pack** from [https://aka.ms/msbuild/developerpacks](https://aka.ms/msbuild/developerpacks) |
 | **Scanner end fails**                                | Build did not succeed                                                   | Fixed compilation errors first, then ran `SonarScanner.MSBuild.exe end`                                                             |
 | **.NET Core command works but .NET Framework fails** | Different scanners: `dotnet sonarscanner` vs `SonarScanner.MSBuild.exe` | Used correct scanner for project type                                                                                               |
+## **For .Net Framework make sure you have refrence assemblies installed else project build fails**
+## **Installing .NET Framework 3.5 on Windows (When It’s Not Listed)**
+
+Modern versions of Windows (Windows 10 / 11) **do not ship with .NET Framework 3.5 enabled by default**, and it **does not appear as a normal SDK download** like newer .NET versions.
+
+However, **.NET Framework 3.5 is included inside Windows as an optional feature**.
+
+### **Method 1: Enable .NET Framework 3.5 from Windows Features (Recommended)**
+
+1. Open **Control Panel**
+2. Go to **Programs → Programs and Features**
+3. Click **Turn Windows features on or off**
+4. Enable:
+
+   ```
+   ☑ .NET Framework 3.5 (includes .NET 2.0 and 3.0)
+   ```
+5. Click **OK**
+6. Windows will download required files and install the framework
+7. Restart if prompted
+
+This installs the **runtime and reference assemblies** required by MSBuild.
+
+---
+
+### **Method 2: Install Using Command Line (Offline / Reliable)**
+
+If Windows Features fails or shows errors, use **DISM**:
+
+```cmd
+DISM /Online /Enable-Feature /FeatureName:NetFx3 /All
+```
+
+If your machine has **no internet access**, mount a Windows ISO and run:
+
+```cmd
+DISM /Online /Enable-Feature /FeatureName:NetFx3 /All /Source:X:\sources\sxs /LimitAccess
+```
+
+(Replace `X:` with the ISO drive letter.)
+
+---
+
+### **Method 3: Verify Installation**
+
+After installation, verify by running:
+
+```cmd
+reg query "HKLM\SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5"
+```
+
+Or confirm via MSBuild by rebuilding the solution:
+
+```cmd
+msbuild WebGoat.NET.sln /t:Rebuild
+```
+
+If installed correctly, **MSB3644 / MSB3645 errors disappear**.
+
+---
+
+## **Important Clarification (Very Common Confusion)**
+
+ Installing **“.NET Framework 3.5 Runtime” alone is NOT enough**
+ MSBuild requires **reference assemblies**, which come from:
+
+* Windows Feature **OR**
+* .NET Framework **Developer Pack**
+
+This is why Visual Studio + MSBuild failed even though “3.5 was installed”.
+
+---
+
+## **Why This Matters for SonarQube Scanning**
+
+* SonarScanner for MSBuild **wraps the build**
+* If MSBuild fails, **analysis cannot be uploaded**
+* Installing .NET 3.5 correctly ensures:
+
+  * Build success
+  * Vulnerable code analysis
+  * Accurate SonarQube results
+
+---
+
+## **Final Outcome**
+
+After enabling **.NET Framework 3.5**:
+
+* MSBuild completed successfully
+* SonarScanner `begin → build → end` flow worked
+* SonarQube displayed security vulnerabilities as expected
 
 ---
 
