@@ -2206,9 +2206,281 @@ If the answer to #2 is:
 
 This is why **humans beat scanners** here.
 
+# 🔐 Attack #8: Cryptographic Misuse in ASP.NET Core
 
+This is not about *breaking crypto*.
+It’s about **using crypto incorrectly**.
 
+Most devs don’t *implement* crypto —
+they **misuse APIs they don’t fully understand**.
 
+---
+
+## 🧠 Mental Model (Read This First)
+
+Crypto fails when developers:
+
+* invent their own schemes
+* use crypto for the wrong purpose
+* skip one required step
+* reuse secrets incorrectly
+
+The app *looks secure*, but the guarantee is gone.
+
+---
+
+## Pattern 1: Hashing Instead of Password Hashing (EASY)
+
+### Developer intention
+
+> “Hash passwords before storing.”
+
+### Code
+
+```csharp
+var hash = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+```
+
+### Why this is wrong
+
+* Fast hash
+* No salt
+* Easy to brute-force
+
+### Why this happens
+
+* Dev knows “hashing is good”
+* Doesn’t know about password-specific hashing
+
+### Reviewer mental trigger
+
+🧠
+
+> “Is this a password hash or a general hash?”
+
+---
+
+## Pattern 2: Hardcoded Secrets (Very Common)
+
+### Code
+
+```csharp
+private const string JwtKey = "SuperSecretKey123!";
+```
+
+### Why this is dangerous
+
+* Key leaks via repo
+* Same key everywhere
+* Cannot rotate safely
+
+### Why scanners sometimes miss
+
+* Looks like config
+* Not obviously crypto misuse
+
+### Reviewer mental trigger
+
+🧠
+
+> “Where does this secret live in prod?”
+
+---
+
+## Pattern 3: Static IV in Encryption (Subtle)
+
+### Code
+
+```csharp
+var iv = new byte[16];
+var encryptor = aes.CreateEncryptor(key, iv);
+```
+
+### Why this breaks security
+
+* Same plaintext → same ciphertext
+* Patterns leak
+* Enables replay and analysis
+
+### Reviewer mental trigger
+
+🧠
+
+> “Is randomness used per encryption?”
+
+---
+
+## Pattern 4: Using Encryption Instead of Signing (Classic JWT Bug)
+
+### Developer intention
+
+> “Protect token data.”
+
+### Code
+
+```csharp
+var encrypted = Encrypt(payload);
+```
+
+### What’s missing
+
+❌ Integrity
+❌ Authenticity
+
+### Result
+
+Attacker modifies ciphertext → app decrypts blindly
+
+### Reviewer mental trigger
+
+🧠
+
+> “How do we know this wasn’t modified?”
+
+---
+
+## Pattern 5: JWT Without Validation (Very Dangerous)
+
+### Code
+
+```csharp
+var token = handler.ReadJwtToken(jwt);
+```
+
+### What’s missing
+
+* Signature validation
+* Issuer
+* Audience
+* Expiry
+
+### Result
+
+Any token works.
+
+### Reviewer mental trigger
+
+🧠
+
+> “Where is validation actually done?”
+
+---
+
+## Pattern 6: Data Protection API Misuse (ASP.NET Core–Specific)
+
+### Code
+
+```csharp
+var protector = provider.CreateProtector("purpose");
+var data = protector.Protect(input);
+```
+
+Later:
+
+```csharp
+var protector = provider.CreateProtector("different-purpose");
+protector.Unprotect(data);
+```
+
+### Why this is broken
+
+* Purpose mismatch
+* Unexpected behavior
+* Dev disables checks to “fix” it
+
+### Reviewer mental trigger
+
+🧠
+
+> “Is purpose consistent and meaningful?”
+
+---
+
+## Pattern 7: Rolling Your Own Crypto (Always Bad)
+
+### Code
+
+```csharp
+var encrypted = Convert.ToBase64String(
+    Xor(data, key)
+);
+```
+
+### Why this is broken
+
+* Obfuscation ≠ encryption
+* Predictable
+* Reversible
+
+### Reviewer mental trigger
+
+🧠
+
+> “Why not use a standard library?”
+
+---
+
+## Pattern 8: Token Reuse Across Contexts (Enterprise Bug)
+
+### Scenario
+
+* Same token used for:
+
+  * auth
+  * password reset
+  * API access
+
+### Why this is dangerous
+
+* One leak breaks everything
+* Scope confusion
+
+### Reviewer mental trigger
+
+🧠
+
+> “What is this token *for*?”
+
+---
+
+## 🧠 One Rule That Catches Crypto Bugs
+
+Ask ONE question:
+
+> ❓ What security guarantee is this crypto supposed to give?
+
+If you can’t answer:
+
+* confidentiality?
+* integrity?
+* authenticity?
+* freshness?
+
+→ the crypto is probably wrong.
+
+---
+
+## Why Crypto Misuse Is Perfect for CTFs
+
+* Easy version: SHA256 passwords
+* Hard version: correct API, wrong usage
+* Scanners catch some, miss many
+* Teaches *thinking*, not algorithms
+
+---
+
+## 🏁 You Now Have the Full Set
+
+We covered:
+
+1. SQL Injection
+2. Authentication Bypass
+3. IDOR / Access Control
+4. Insecure Deserialization
+5. File Upload → RCE
+6. SSRF
+7. Business Logic Flaws
+8. Cryptographic Misuse
 
 
 
